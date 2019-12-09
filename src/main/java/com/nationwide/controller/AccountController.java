@@ -40,6 +40,11 @@ public class AccountController {
 		return service.getUsernameFromId(id);
 	}
 	
+	@GetMapping("/available/{username}")
+	public boolean checkAvailability(@PathVariable String username) {
+		return service.checkAvailable(username);
+	}
+	
 	@PostMapping("/new")
 	@ResponseStatus(code = HttpStatus.CREATED)
 	public ResponseAccountDto addUser(@RequestBody RequestAccountDto accountDto) {
