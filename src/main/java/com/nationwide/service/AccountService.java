@@ -66,9 +66,8 @@ public class AccountService {
 
 	public Account authenticate(Account user) {
 		Account foundUser = getAccountFromUsername(user.getUsername());
-		System.out.println(foundUser);
 		if (passwordSecurity.securePassword(user.getPassword()).equals(foundUser.getPassword())) {
-			return user;
+			return foundUser;
 		} else {
 			throw new UnauthorisedException("Username or password is incorrect");
 		}
