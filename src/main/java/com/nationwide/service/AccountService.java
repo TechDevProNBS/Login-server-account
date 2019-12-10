@@ -3,6 +3,9 @@ package com.nationwide.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.nationwide.exceptions.ConflictException;
+import com.nationwide.exceptions.NotFoundException;
+import com.nationwide.exceptions.UnauthorisedException;
 import com.nationwide.persistence.domain.Account;
 import com.nationwide.persistence.repository.AccountRepository;
 
@@ -20,32 +23,35 @@ public class AccountService {
 	}
 	
 	public String getUsernameFromId(Long id) {
-		return accountRepository.findById(id).orElseThrow(() -> new RuntimeException("id not found")).getUsername();
+		return accountRepository.findById(id).orElseThrow(() -> new NotFoundException("id not found")).getUsername();
 	}
 	
 	public Account addUser(Account user) {
 		user.setPassword(passwordSecurity.securePassword(user.getPassword()));
 		if(accountRepository.findByUsername(user.getUsername()).isPresent()) {
-			throw new RuntimeException("Username already exists");
+			throw new ConflictException("Username already exists");
 		} else {
 			return accountRepository.save(user);			
 		}
 	}
 	
 	private Account getAccountFromUsername(String username) {
-		return accountRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Account username not found"));
+		return accountRepository.findByUsername(username).orElseThrow(() -> new NotFoundException("Account username not found"));
 	}
 	
-	private boolean checkAvailable(String username) {
+	public boolean checkAvailable(String username) {
 		return !(accountRepository.findByUsername(username).isPresent());
 	}
 	
 	public Account updateUser(String currentUsername, Account newInfo) {
 		Account foundUser = getAccountFromUsername(currentUsername);
-		if(!(currentUsername.equals(newInfo.getUsername())) && checkAvailable(newInfo.getUsername())) {
-			foundUser.setUsername(newInfo.getUsername());
-		} else {	
-			throw new RuntimeException("Username in use");
+		if(!(currentUsername.equals(newInfo.getUsername()))) {
+			if(checkAvailable(newInfo.getUsername())) {
+				foundUser.setUsername(newInfo.getUsername());
+			}
+			else {
+				throw new ConflictException("Username in use");
+			}
 		}
 		foundUser.setPassword(passwordSecurity.securePassword(newInfo.getPassword()));
 		accountRepository.flush();
@@ -60,11 +66,10 @@ public class AccountService {
 
 	public Account authenticate(Account user) {
 		Account foundUser = getAccountFromUsername(user.getUsername());
-		System.out.println(foundUser);
 		if (passwordSecurity.securePassword(user.getPassword()).equals(foundUser.getPassword())) {
-			return user;
+			return foundUser;
 		} else {
-			throw new RuntimeException("Unauthorised");
+			throw new UnauthorisedException("Username or password is incorrect");
 		}
 	}
 
